@@ -32,7 +32,7 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 [Forex Currency Pairs](https://finance.yahoo.com/markets/currencies/)
 
 
-[Project Architecture](diagram.svg)
+![Project Architecture](diagram.svg)
 
 ```
  <tree>

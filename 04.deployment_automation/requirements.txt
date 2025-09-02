@@ -1,0 +1,12 @@
+pyarrow
+jupyter
+yfinance
+pandas_datareader
+plotly
+matplotlib
+tqdm
+xgboost
+scikit-learn
+joblib
+streamlit
+TA-Lib

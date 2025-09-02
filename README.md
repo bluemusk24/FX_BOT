@@ -30,7 +30,6 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 
 ```
  <tree>
-
 ├── 01.fx_analysis
 │   ├── bitcoin_plot.png
 │   ├── brent_crude_plot.png
@@ -49,26 +48,37 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 │   ├── fxPAIRS_Trading&Simulations.ipynb
 │   └── prediction_plot.png
 ├── 04.deployment_automation
+│   ├── deployment.yaml
+│   ├── dockerfile
+│   ├── entrypoint.sh
+│   ├── local_data
+│   │   ├── indexes_df.parquet
+│   │   ├── macro_df.parquet
+│   │   ├── tickers_df.parquet
+│   │   ├── transformed_df.parquet
+│   │   └── xgboost_model.joblib
 │   ├── main.py
-│   └── scripts
-│       ├── __pycache__
-│       │   ├── data_repo.cpython-311.pyc
-│       │   ├── train.cpython-311.pyc
-│       │   └── transform.cpython-311.pyc
-│       ├── data_repo.py
-│       ├── train.py
-│       └── transform.py
+│   ├── requirements.txt
+│   ├── scripts
+│   │   ├── __pycache__
+│   │   │   ├── data_repo.cpython-311.pyc
+│   │   │   ├── train.cpython-311.pyc
+│   │   │   └── transform.cpython-311.pyc
+│   │   ├── data_repo.py
+│   │   ├── train.py
+│   │   └── transform.py
+│   ├── service.yml
+│   └── streamlit_app.py
 ├── README.md
-├── dockerfile
-├── entrypoint.sh
+├── diagram.svg
 ├── local_data
 │   ├── indexes_df.parquet
 │   ├── macro_df.parquet
 │   ├── tickers_df.parquet
 │   ├── transformed_df.parquet
 │   └── xgboost_model.joblib
-├── requirements.txt
-└── streamlit_app.py
+├── streamlit_app.py
+└── streamlit_visuals.mp4
 ```
 
 ### 2. Environment Setup on Local Machine Terminal and Requirements Installation.

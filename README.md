@@ -2,17 +2,11 @@
 
 ### 1. Project Description :
 
-The FX-BOT aims to develop an intelligent, automated system for analyzing the foreign exchange (forex) market using advanced machine learning algorithms. The system is 
+The FX-BOT aims to develop an intelligent, automated system for analyzing the foreign exchange (forex) market using advanced machine learning algorithms. The system is designed to collect, process, and analyze real-time and 
 
-designed to collect, process, and analyze real-time and historical forex data in order to generate meaningful insights and predictive signals for trading and investment 
+historical forex data in order to generate meaningful insights and predictive signals for trading and investment strategies. FX-BOT leverages ML models to detect market patterns and forecast currency movements based on 
 
-strategies.
-
-FX-BOT leverages ML models to detect market patterns, forecast currency movements, and backtest trading strategies based on historical data. It is built to operate 
-
-efficiently in a command-line environment, making it lightweight and adaptable for deployment in various environments including cloud servers and low-resource 
-
-systems.
+historical data. It is built to operate efficiently in a command-line environment, making it lightweight and adaptable for deployment in various environments including cloud servers and low-resource systems.
 
 Key features of the system include:
 

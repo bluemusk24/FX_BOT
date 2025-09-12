@@ -30,6 +30,7 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 
 ```
  <tree>
+.
 ├── 01.fx_analysis
 │   ├── bitcoin_plot.png
 │   ├── brent_crude_plot.png
@@ -72,13 +73,16 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 │   ├── service.yml
 │   └── streamlit_app.py
 ├── README.md
+├── Streamlit-video.mp4
 ├── diagram.svg
 └── local_data
     ├── indexes_df.parquet
     ├── macro_df.parquet
     ├── tickers_df.parquet
     ├── transformed_df.parquet
-    └── xgboost_model.joblib
+    ├── xgboost_model.joblib
+    ├── xgboost_model_1h.joblib
+    └── xgboost_model_4h.joblib
 ```
 
 ### 2. Environment Setup on Local Machine Terminal and Requirements Installation.

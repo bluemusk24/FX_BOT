@@ -117,11 +117,13 @@ conda activate fx-BOT
 * [train script](04.deployment_automation/scripts/train.py)
 
 ```bash
+cd 04.deployment_automation/
+
 pip install -r requirements.txt
 
 python3 main.py
 ```
-* ![Streamlit Interface](streamlit_visuals.mp4)
+* ![Streamlit Interface](Streamlit-video.mp4)
 
 ***Note***: Local directory to be created when ``main.py`` is run.
 

@@ -34,17 +34,17 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 │   ├── bitcoin_plot.png
 │   ├── brent_crude_plot.png
 │   ├── eurusd_plot.png
-│   ├── forex_df_combined_2025_08_27.parquet.brotli
+│   ├── forex_df_combined_2025_09_11.parquet.brotli
 │   ├── fxPAIRS.ipynb
 │   ├── fxpairs_plot.png
 │   ├── gold_plot.png
 │   ├── volatility_index_plot.png
 │   └── wti_crude_plot.png
 ├── 02.fx_modelling
-│   ├── forex_df_models_2025_08_27.parquet.brotli
+│   ├── forex_df_models_2025_09_11.parquet.brotli
 │   └── fxPAIRS_models.ipynb
 ├── 03.fx_trading_simulations
-│   ├── forex_df_models_2025_08_27.parquet.brotli
+│   ├── forex_df_models_2025_09_11.parquet.brotli
 │   ├── fxPAIRS_Trading&Simulations.ipynb
 │   └── prediction_plot.png
 ├── 04.deployment_automation
@@ -56,7 +56,9 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 │   │   ├── macro_df.parquet
 │   │   ├── tickers_df.parquet
 │   │   ├── transformed_df.parquet
-│   │   └── xgboost_model.joblib
+│   │   ├── xgboost_model.joblib
+│   │   ├── xgboost_model_1h.joblib
+│   │   └── xgboost_model_4h.joblib
 │   ├── main.py
 │   ├── requirements.txt
 │   ├── scripts
@@ -71,14 +73,12 @@ is to provide a scalable foundation for building smarter, more responsive forex 
 │   └── streamlit_app.py
 ├── README.md
 ├── diagram.svg
-├── local_data
-│   ├── indexes_df.parquet
-│   ├── macro_df.parquet
-│   ├── tickers_df.parquet
-│   ├── transformed_df.parquet
-│   └── xgboost_model.joblib
-├── streamlit_app.py
-└── streamlit_visuals.mp4
+└── local_data
+    ├── indexes_df.parquet
+    ├── macro_df.parquet
+    ├── tickers_df.parquet
+    ├── transformed_df.parquet
+    └── xgboost_model.joblib
 ```
 
 ### 2. Environment Setup on Local Machine Terminal and Requirements Installation.

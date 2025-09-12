@@ -5,121 +5,82 @@ from scripts.train import TrainModel
 import pandas as pd
 import warnings
 import os
-
 from datetime import datetime  
 
 def main():
+    FETCH_REPO = True
+    TRANSFORM_DATA = True
+    TRAIN_MODEL = True
 
-  # SLOWER workflow settings: full update (the latest data, retrain the model, make inference (few mins)
-  FETCH_REPO = True
-  TRANSFORM_DATA = True
-  TRAIN_MODEL = True
-  
+    data_dir = 'local_data/'
+    ticker_file = os.path.join(data_dir, 'tickers_df.parquet')
 
-  # FAST workflow settings (everything comes local_repo/ directory)
-  # FETCH_REPO = False  # Use existing local data due to yfinance rate limits
-  # TRANSFORM_DATA = False
-  # TRAIN_MODEL = False
-
-  # =========================================
-  # Step1: Get data
-  # =========================================
-  print('Step 1: Getting data from APIs or Load from disk')
-  repo = DataRepository()
-
-  # Check if we have local data files
-  data_dir = 'local_data/'
-  ticker_file = os.path.join(data_dir, 'tickers_df.parquet')
-  
-  if FETCH_REPO:
-    try:
-      # Fetch All 3 datasets for all dates from APIs
-      print("Attempting to fetch fresh data from APIs...")
-      repo.fetch()
-      # save data to a local dir
-      repo.persist(data_dir=data_dir)
-      print("Successfully fetched and saved fresh data!")
-    except Exception as e:
-      print(f"Failed to fetch fresh data: {e}")
-      if os.path.exists(ticker_file):
-        print("Falling back to existing local data...")
-        repo.load(data_dir=data_dir)
-      else:
-        print("No local data available. Cannot proceed without data.")
-        print("Please try again later when API rate limits are reset.")
-        return
-  else:
-    # OR Load from disk
-    if os.path.exists(ticker_file):
-      print("Loading existing data from local files...")
-      repo.load(data_dir=data_dir)
+    # Step 1: Get data
+    print('Step 1: Getting data from APIs or Load from disk')
+    repo = DataRepository()
+    if FETCH_REPO:
+        try:
+            repo.fetch()
+            repo.persist(data_dir=data_dir)
+        except Exception as e:
+            print(f"Failed to fetch fresh data: {e}")
+            if os.path.exists(ticker_file):
+                repo.load(data_dir=data_dir)
+            else:
+                return
     else:
-      print("No local data found and FETCH_REPO is False.")
-      print("Please set FETCH_REPO=True to download data or ensure local data exists.")
-      return
+        if os.path.exists(ticker_file):
+            repo.load(data_dir=data_dir)
+        else:
+            return
 
-  # =========================================
-  # Step2: Transform data into one dataframe
-  # =========================================
-  print('Step 2: Making data transformations (combining into one dataset)')
+    # Step 2: Transform data
+    print('Step 2: Transforming data into one dataframe')
+    transformed = TransformData(repo=repo)
+    if TRANSFORM_DATA:
+        transformed.transform()
+        transformed.persist(data_dir=data_dir)
+    else:
+        transformed.load(data_dir=data_dir)
 
-  transformed =  TransformData(repo = repo)
+    # Step 3: Train/Load Model
+    print('Step 3: Training the model or loading from disk')
+    warnings.filterwarnings("ignore")
+    trained = TrainModel(transformed=transformed)
 
-  if TRANSFORM_DATA:
-    transformed.transform()
-    transformed.persist(data_dir='local_data/')
-  else:
-    transformed.load(data_dir='local_data/')
+    if TRAIN_MODEL:
+        trained.prepare_dataframe()
+        trained.train_xgboost()  # trains both 1h and 4h
+        trained.persist(data_dir=data_dir)
+    else:
+        trained.prepare_dataframe()
+        trained.load(data_dir=data_dir)
 
-  # =========================================
-  # Step3: Train/ Load Model
-  # =========================================
-  print('Step 3: Training the model or loading from disk')
+    # Step 4: Make Inference
+    print('Step 4: Making inference')
+    trained.make_inference()  
 
-  # Suppress all warnings (not recommended in production unless necessary)
-  warnings.filterwarnings("ignore")
+    # Show only buy signals (prediction >= 0.56)
+    for horizon in ["1h", "4h"]:
+        pred_col = f"pred_xgboost_{horizon}_best"
+        prob_col = f"prob_pred_xgboost_{horizon}_best"
 
-  trained = TrainModel(transformed=transformed)
+        print(f"\n=== {horizon.upper()} Buy Predictions (prob >= 0.6) ===")
+        buy_signals = trained.df_full.loc[
+            trained.df_full[pred_col] & (trained.df_full[prob_col] >= 0.60),
+            ["Ticker", pred_col, prob_col]  
+        ]
 
-  if TRAIN_MODEL:
-    trained.prepare_dataframe() # prepare dataframes
-    trained.train_xgboost() # train the model
-    trained.persist(data_dir='local_data/') # save the model to disk
-  else:
-    trained.prepare_dataframe() # prepare dataframes (incl. for inference)
-    trained.load(data_dir='local_data/')
+        if buy_signals.empty:
+            print("No buy signals for this horizon.")
+        else:
+            print(buy_signals.sort_values(by=prob_col, ascending=False).reset_index(drop=True))
 
-  # =========================================
-  # Step4: Make Inference
-  # =========================================
-  print('Step 4: Making inference')
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
+    print(f"\nCurrent date and time: {current_datetime}")
 
-  prediction_name='pred_xgboost_1h_best'
-  trained.make_inference(pred_name=prediction_name)
-  COLUMNS = ['Close','Ticker','Date',prediction_name, prediction_name+'_rank']
-  
-  print('Results of the 1-hour prediction estimation:')
-  # Set display options to prevent truncation
-  pd.set_option('display.max_rows', None)
-  pd.set_option('display.max_columns', None)
-  pd.set_option('display.max_colwidth', None)
-  
-  print('Top 3 predictions every day (1-hour future growth):')
-  print(trained.df_full[trained.df_full[f'{prediction_name}_rank']>=3].sort_values(by=["Date",f'{prediction_name}_rank']).tail(10)[COLUMNS])
-
-
-  print('Bottom 3 predictions every day (1-hour future growth):')
-  max_date = trained.df_full.Date.max()
-  count_predictions = trained.df_full[trained.df_full.Date==max_date].Ticker.nunique()
-  print(trained.df_full[trained.df_full[f'{prediction_name}_rank']>=count_predictions-2].sort_values(by=["Date",f'{prediction_name}_rank']).tail(10)[COLUMNS])
-
-
-  current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-  print(f"Current date and time: {current_datetime}")
 
 if __name__ == "__main__":
-  main()
-  # Launch Streamlit UI to show results
-  import os
-  print("\nLaunching Streamlit UI...")
-  os.system("streamlit run streamlit_app.py")
+    main()
+    print("\nLaunching Streamlit UI...")
+    os.system("streamlit run streamlit_app.py")

@@ -2,97 +2,127 @@ import streamlit as st
 import pandas as pd
 import os
 
-st.set_page_config(page_title="FX-BOT Results", layout="wide")
-st.title("FX-BOT: Currency Pair Analysis Results")
+DATA_PATH = "local_data/tickers_df.parquet"
 
-# Path to local data directory
-data_dir = "local_data/"
+st.set_page_config(page_title="FX-BOT Predictions", layout="wide")
+st.title("📈 FX-BOT Predictions Dashboard")
 
-# Show available data files
-data_files = os.listdir(data_dir) if os.path.exists(data_dir) else []
+# Check if parquet file exists
+if not os.path.exists(DATA_PATH):
+    st.error(f"Predictions file not found: {DATA_PATH}. Run main.py first to generate it.")
+    st.stop()
 
-if not data_files:
-    st.warning("No results found. Please run the data pipeline first.")
-else:
-    st.sidebar.header("Available Data Files")
-    for file in data_files:
-        st.sidebar.write(file)
+# Load predictions dataframe
+df = pd.read_parquet(DATA_PATH)
 
-    # Show model predictions and best currency pair to invest in
-    tickers_path = os.path.join(data_dir, "tickers_df.parquet")
-    if os.path.exists(tickers_path):
-        df = pd.read_parquet(tickers_path)
-        st.subheader("Currency Pairs: Model Predictions and Ranks")
-        # Always try to use XGBoost prediction columns if available
-        pred_col = None
-        prob_col = None
-        rank_col = None
-        if 'pred_xgboost_1h_best' in df.columns:
-            pred_col = 'pred_xgboost_1h_best'
-        if 'prob_xgboost_1h_best' in df.columns:
-            prob_col = 'prob_xgboost_1h_best'
-        if 'pred_xgboost_1h_best_rank' in df.columns:
-            rank_col = 'pred_xgboost_1h_best_rank'
-        # Fallback to auto-detect if not found
-        if not pred_col or not rank_col:
-            for col in df.columns:
-                if not rank_col and col.endswith('_rank'):
-                    rank_col = col
-                if not pred_col and (col.startswith('pred') or col.startswith('y_pred') or col.startswith('class')):
-                    pred_col = col
-        # If still not found, fallback to default names
-        if not rank_col:
-            rank_col = 'pred_class1_rank' if 'pred_class1_rank' in df.columns else df.columns[-1]
-        if not pred_col:
-            pred_col = 'pred_class1' if 'pred_class1' in df.columns else df.columns[-2]
+# Sidebar selection
+st.sidebar.header("🔧 Controls")
 
-        # Filter for each date and show top/bottom 3 predictions per day
-        if 'Date' in df.columns:
-            st.write(f"### Forex Currency Pairs Daily Predictions (1-hour future growth)")
-            def highlight_buy(val):
-                if isinstance(val, (int, float)) and val >= 0.5:
-                    return 'background-color: #d4f7d4'  # light green for buy
-                elif isinstance(val, (int, float)):
-                    return 'background-color: #f7d4d4'  # light red for sell
-                return ''
+# Choose date
+available_dates = sorted(df["Date"].dt.strftime("%Y-%m-%d").unique())
+selected_date = st.sidebar.selectbox("Select Date:", available_dates, index=len(available_dates) - 1)
 
-            for date in sorted(df['Date'].unique()):
-                df_day = df[df['Date'] == date].copy()
-                # Format date for section header to YYYY-MM-DD only
-                date_str = pd.to_datetime(date).strftime('%Y-%m-%d')
-                st.markdown(f"#### {date_str}")
-                # Find probability column
-                prob_col = None
-                for col in df_day.columns:
-                    if 'prob' in col or 'proba' in col:
-                        prob_col = col
-                        break
-                # Filter for XGBoost Buy predictions only
-                if pred_col in df_day.columns and 'is_positive_growth_1h_future' in df_day.columns:
-                    # Filter for both positive actual growth and XGBoost probability >= 0.56
-                    if prob_col and prob_col in df_day.columns:
-                        growth = df_day[(df_day['is_positive_growth_1h_future'] == 1) & (df_day[prob_col] >= 0.56)].copy()
-                    else:
-                        growth = df_day[(df_day['is_positive_growth_1h_future'] == 1) & (df_day[pred_col] == 1)].copy()
-                    if not growth.empty:
-                        # Sort by probability if available
-                        if prob_col and prob_col in growth.columns:
-                            growth = growth.sort_values(prob_col, ascending=False)
-                            display_cols = ["Ticker", prob_col, pred_col]
-                            growth = growth[display_cols].rename(columns={prob_col: 'Probability', pred_col: 'Growth_Signal'})
-                        else:
-                            display_cols = ["Ticker", pred_col]
-                            growth = growth[display_cols].rename(columns={pred_col: 'Growth_Signal'})
-                        growth = growth.reset_index(drop=True)
-                        st.dataframe(growth)
-                        st.caption('Showing only pairs with actual positive growth and model probability >= 0.56')
-                    else:
-                        st.info('No qualifying predictions for this day.')
+# Filter by date
+date_df = df[df["Date"].dt.strftime("%Y-%m-%d") == selected_date].copy()
+
+# Function to get signals
+def get_signals(df, horizon, buy_thresh=0.60, sell_thresh=0.40, top_n=5):
+    pred_col = f"pred_xgboost_{horizon}_best"
+    prob_col = f"prob_pred_xgboost_{horizon}_best"
+
+    if prob_col not in df.columns:
+        prob_col = pred_col
+
+    # Buy signals
+    buy_signals = (
+        df.loc[df[prob_col] >= buy_thresh, ["Ticker", prob_col]]
+        .sort_values(by=prob_col, ascending=False)
+        .head(top_n)
+        .reset_index(drop=True)
+    )
+
+    # Sell signals
+    sell_signals = (
+        df.loc[df[prob_col] <= sell_thresh, ["Ticker", prob_col]]
+        .sort_values(by=prob_col, ascending=True)
+        .head(top_n)
+        .reset_index(drop=True)
+    )
+
+    return buy_signals, sell_signals
+
+# Display top buy/sell signals per horizon with colors
+st.subheader(f"Top Signals on {selected_date}")
+
+signals_dict = {}
+
+for horizon in ["1h", "4h"]:
+    st.markdown(f"### {horizon.upper()} Horizon")
+    buy_signals, sell_signals = get_signals(date_df, horizon)
+    signals_dict[horizon] = {"buy": buy_signals, "sell": sell_signals}
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### Buy Signals (Prob ≥ 0.60)")
+        if buy_signals.empty:
+            st.info("No strong buy signals.")
         else:
-            st.warning("No 'Date' column found in tickers_df.parquet.")
-    else:
-        st.info("tickers_df.parquet not found.")
+            st.dataframe(
+                buy_signals.style.map(
+                    lambda x: "color: green" if x in buy_signals["Ticker"].values else "",
+                    subset=["Ticker"]
+                ).background_gradient(
+                    subset=[f"prob_pred_xgboost_{horizon}_best"], cmap="Greens"
+                ),
+                width="stretch"
+            )
 
+    with col2:
+        st.markdown("#### Sell Signals (Prob ≤ 0.40)")
+        if sell_signals.empty:
+            st.info("No strong sell signals.")
+        else:
+            st.dataframe(
+                sell_signals.style.map(
+                    lambda x: "color: red" if x in sell_signals["Ticker"].values else "",
+                    subset=["Ticker"]
+                ).background_gradient(
+                    subset=[f"prob_pred_xgboost_{horizon}_best"], cmap="Reds_r"
+                ),
+                width="stretch"
+            )
 
-st.markdown("---")
-st.caption("FX-BOT Streamlit UI | Results Viewer")
+# Strongest signals across both horizons (common tickers)
+st.subheader("🔥 Strongest Signals Across Both Horizons")
+
+# Strong buy tickers common to 1h AND 4h
+common_strong_buy = set(signals_dict["1h"]["buy"]["Ticker"]).intersection(
+    set(signals_dict["4h"]["buy"]["Ticker"])
+)
+# Strong sell tickers common to 1h AND 4h
+common_strong_sell = set(signals_dict["1h"]["sell"]["Ticker"]).intersection(
+    set(signals_dict["4h"]["sell"]["Ticker"])
+)
+
+# Display with colors
+if common_strong_buy:
+    st.markdown("#### Strong Buy Across Horizons")
+    st.markdown(
+        "<span style='color:green; font-weight:bold;'>"
+        + ", ".join(sorted(common_strong_buy))
+        + "</span>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.info("No strong buy common to both horizons.")
+
+if common_strong_sell:
+    st.markdown("#### Strong Sell Across Horizons")
+    st.markdown(
+        "<span style='color:red; font-weight:bold;'>"
+        + ", ".join(sorted(common_strong_sell))
+        + "</span>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.info("No strong sell common to both horizons.")

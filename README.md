@@ -185,4 +185,6 @@ kubectl get endpoints myapp
 kubectl port-forward service/myapp 8080:80   # or Stop current port-forward with Ctrl+C, then: (kubectl port-forward <pod name> 8080:8501)
 
 http://localhost:8080/
+
+kind delete cluster
 ```

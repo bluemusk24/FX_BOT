@@ -117,6 +117,8 @@ class DataRepository:
         historyPrices['growth_'+str(i)+'h'] = historyPrices['Close'] / historyPrices['Close'].shift(i)
     # future returns
       historyPrices['growth_future_1h'] = historyPrices['Close'].shift(-1) / historyPrices['Close']
+      historyPrices['growth_future_4h'] = historyPrices['Close'].shift(-4) / historyPrices['Close']
+
 
       # Technical indicators
       # SimpleMovingAverage 10 days and 20 days
@@ -130,6 +132,7 @@ class DataRepository:
 
     # what we want to predict
       historyPrices['is_positive_growth_1h_future'] = np.where(historyPrices['growth_future_1h'] > 1, 1, 0)
+      historyPrices['is_positive_growth_4h_future'] = np.where(historyPrices['growth_future_4h'] > 1, 1, 0)
 
       # sleep 1 sec between downloads - not to overload the API server
       time.sleep(1)
@@ -355,9 +358,3 @@ class DataRepository:
     self.ticker_df = pd.read_parquet(os.path.join(data_dir,'tickers_df.parquet'))
     self.macro_df = pd.read_parquet(os.path.join(data_dir,'macro_df.parquet'))
     self.indexes_df = pd.read_parquet(os.path.join(data_dir,'indexes_df.parquet'))
-
-
-
-
-
-

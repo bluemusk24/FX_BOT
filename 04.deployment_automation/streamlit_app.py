@@ -26,25 +26,25 @@ selected_date = st.sidebar.selectbox("Select Date:", available_dates, index=len(
 date_df = df[df["Date"].dt.strftime("%Y-%m-%d") == selected_date].copy()
 
 # Function to get signals
-def get_signals(df, horizon, buy_thresh=0.60, sell_thresh=0.40, top_n=5):
+def get_signals(df, horizon, buy_thresh=0.60, sell_thresh=0.60, top_n=5):
     pred_col = f"pred_xgboost_{horizon}_best"
     prob_col = f"prob_pred_xgboost_{horizon}_best"
 
     if prob_col not in df.columns:
         prob_col = pred_col
 
-    # Buy signals
+    # Buy signals (now <= buy_thresh)
     buy_signals = (
-        df.loc[df[prob_col] >= buy_thresh, ["Ticker", prob_col]]
-        .sort_values(by=prob_col, ascending=False)
+        df.loc[df[prob_col] <= buy_thresh, ["Ticker", prob_col]]
+        .sort_values(by=prob_col, ascending=True)
         .head(top_n)
         .reset_index(drop=True)
     )
 
-    # Sell signals
+    # Sell signals (now >= sell_thresh)
     sell_signals = (
-        df.loc[df[prob_col] <= sell_thresh, ["Ticker", prob_col]]
-        .sort_values(by=prob_col, ascending=True)
+        df.loc[df[prob_col] >= sell_thresh, ["Ticker", prob_col]]
+        .sort_values(by=prob_col, ascending=False)
         .head(top_n)
         .reset_index(drop=True)
     )
@@ -63,7 +63,7 @@ for horizon in ["1h", "4h"]:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("#### Buy Signals (Prob ≥ 0.60)")
+        st.markdown("#### Buy Signals (Prob ≤ 0.60)")
         if buy_signals.empty:
             st.info("No strong buy signals.")
         else:
@@ -72,13 +72,13 @@ for horizon in ["1h", "4h"]:
                     lambda x: "color: green" if x in buy_signals["Ticker"].values else "",
                     subset=["Ticker"]
                 ).background_gradient(
-                    subset=[f"prob_pred_xgboost_{horizon}_best"], cmap="Greens"
+                    subset=[buy_signals.columns[1]], cmap="Greens"
                 ),
                 width="stretch"
             )
 
     with col2:
-        st.markdown("#### Sell Signals (Prob ≤ 0.40)")
+        st.markdown("#### Sell Signals (Prob ≥ 0.60)")
         if sell_signals.empty:
             st.info("No strong sell signals.")
         else:
@@ -87,7 +87,7 @@ for horizon in ["1h", "4h"]:
                     lambda x: "color: red" if x in sell_signals["Ticker"].values else "",
                     subset=["Ticker"]
                 ).background_gradient(
-                    subset=[f"prob_pred_xgboost_{horizon}_best"], cmap="Reds_r"
+                    subset=[sell_signals.columns[1]], cmap="Reds_r"
                 ),
                 width="stretch"
             )

@@ -84,3 +84,5 @@ if __name__ == "__main__":
     main()
     print("\nLaunching Streamlit UI...")
     os.system("streamlit run streamlit_app.py")
+
+

@@ -130,16 +130,19 @@ class TrainModel:
         print("Training separate XGBoost models for 1h and 4h...")
 
         params = dict(
-            colsample_bytree=0.49940025099516744,
-            gamma=0.8770610350651781,
-            learning_rate=0.012070944572937612,
-            max_depth=4,
-            min_child_weight=28.663297628995185,
-            n_estimators=500,
-            eval_metric='auc',
+            colsample_bytree=0.762959801713856,
+            gamma=0.5382156736511214,
+            learning_rate=0.019405744787252217,
+            max_depth=8,
+            min_child_weight=4.873591268079564,
+            n_estimators=150,
+            reg_alpha=0.9168585284681378,
+            reg_lambda=0.679502423771298,
+            subsample=0.312094076585974,
             n_jobs=-1,
+            eval_metric='auc',
             objective='binary:logistic',
-            random_state=42,
+            random_state=42
         )
 
         targets = {
